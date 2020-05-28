@@ -1,6 +1,8 @@
 # Branchfree QuickSort performance analysis
 
-This directory contains code and benchmarks accompanying the blog post at
+This is not an officially supported Google product
+
+This directory contains code and benchmarks accompanying the blog post about QuickSort performance.
 
 The `main()` function validates the correctness of all the algorithms
 before running benchmarks.
@@ -13,7 +15,7 @@ benchmarking framework.
 From this directory, run:
 
 ```
-$ bazel build -c opt :benchmark
-$ ../bazel-bin/quicksort-blog-post/benchmark
+$ bazel build -c opt :bench_sort
+$ ../bazel-bin/quicksort-blog-post/bench_sort
 ```
 
