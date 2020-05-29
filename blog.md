@@ -1,45 +1,4 @@
-﻿<!----- Conversion time: 3.51 seconds.
-
-
-Using this Markdown file:
-
-1. Cut and paste this output into your source file.
-2. See the notes and action items below regarding this conversion run.
-3. Check the rendered output (headings, lists, code blocks, tables) for proper
-   formatting and use a linkchecker before you publish this page.
-
-Conversion notes:
-
-* GDC version 1.1.19 r24
-* Fri May 29 2020 15:51:47 GMT-0700 (Pacific Daylight Time)
-* Source doc: https://docs.google.com/a/google.com/open?id=1A_mWZM3OmgTBaO2MLQdFvLRoRSKcrWbA8BrBQi7aHtU
-
-WARNING:
-Inline drawings not supported: look for ">>>>  GDC alert:  inline drawings..." in output.
-
-
-WARNING:
-You have some equations: look for ">>>>  GDC alert:  equation..." in output.
-
------>
-
-
-<p style="color: red; font-weight: bold">>>>>  GDC alert:  ERRORs: 0; WARNINGs: 2; ALERTS: 7.</p>
-<ul style="color: red; font-weight: bold"><li>See top comment block for details on ERRORs and WARNINGs. <li>In the converted Markdown or HTML, search for inline alerts that start with >>>>  GDC alert:  for specific instances that need correction.</ul>
-
-<p style="color: red; font-weight: bold">Links to alert messages:</p><a href="#gdcalert1">alert1</a>
-<a href="#gdcalert2">alert2</a>
-<a href="#gdcalert3">alert3</a>
-<a href="#gdcalert4">alert4</a>
-<a href="#gdcalert5">alert5</a>
-<a href="#gdcalert6">alert6</a>
-<a href="#gdcalert7">alert7</a>
-
-<p style="color: red; font-weight: bold">>>>> PLEASE check and correct alert issues and delete this message and the inline alerts.<hr></p>
-
-
-
-# Hoare’s rebuttal and bubble sort’s comeback
+﻿# Hoare’s rebuttal and bubble sort’s comeback
 
 
 ### Gerben Stavenga and Josh Haberman
@@ -125,21 +84,11 @@ if (it < right) goto loop
 
 How would it run on a parallel out-of order CPU? The initial model is that the CPU is arbitrary parallel, ie. it can execute as many instructions parallel as long as the instructions are independent. What is important to understand is the loop carried dependency chains. They determine the minimum latency a loop could possibly run. In the above code you see that the dependency between iterations of the loop are carried by `it` and `p`. Only line 8 and 9 participate on the loop carried chain and both are single cycle instructions. So we determine that the loop could potentially run at a throughput of 1 cycle per iteration.
 
-
-
-<p id="gdcalert1" ><span style="color: red; font-weight: bold">>>>>  GDC alert: inline drawings not supported directly from Docs. You may want to copy the inline drawing to a standalone drawing and export by reference. See <a href=http://go/g3doc-drawings>go/g3doc-drawings</a> for details. The img URL below is a placeholder. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert2">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>> </span></p>
-
-
-![drawing](https://docs.google.com/a/google.com/drawings/d/12345/export/png)
+[drawing](https://docs.google.com/drawings/d/1FG4ywYyac_FG2779wWoba1Ryp2WzfjK_N6Pjq9GGUZk/edit?usp=sharing)
 
 However things are more complicated in the above loop. There are also loads and stores to memory. If you store something to a certain memory address and later load from that address you must read the value of the previous store. That means loads have dependencies on stores, or at least if the address overlaps. Here `it` and `p` are dynamic values and for sure they can overlap, depicted by the dashed lines in the diagram above. So let’s add the fact that there is a dependency between the loads at line 1 and 2 on the stores of line 6 and 7.
 
-
-
-<p id="gdcalert2" ><span style="color: red; font-weight: bold">>>>>  GDC alert: inline drawings not supported directly from Docs. You may want to copy the inline drawing to a standalone drawing and export by reference. See <a href=http://go/g3doc-drawings>go/g3doc-drawings</a> for details. The img URL below is a placeholder. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert3">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>> </span></p>
-
-
-![drawing](https://docs.google.com/a/google.com/drawings/d/12345/export/png)
+[drawing](https://docs.google.com/drawings/d/146oKVnprmcF4sOEhZSB-gHqxZsO679J4mJF6OqsjCa8/edit?usp=sharing)
 
 This completely changes the game, now there is a long loop carried data dependency, lines 6 and 7 depend on lines 4 and 5, which both depend on line 3 , which depend on the loads at lines 1 and 2, which potentially depend on the stores at lines 6 and 7 of the previous iteration. If we count the cycles, we get 5 cycles for the loads (loads itself can be done in parallel), 1 cycle for the comparison, 1 cycle for the conditional move and 1 cycle for the store, hence this loop will run ~8 cycles. A far cry from the 1 cycle iterations our cursory discussion indicated.
 
@@ -207,12 +156,7 @@ T* ModifiedLomutoPartition(T pivot, T* left, T* right, T* scratch) {
 
 This is a much simpler loop, only one load and one store per iteration. More importantly the load will never clash with a previous store. This loop runs much faster than the original loop, it’s not 1 cycle per iteration but 2.5 cycles on my machine. This is indicative that it’s saturating the ILP of the CPU. Unfortunately the above code is not in-place anymore, it requires O(n) additional memory for the scratch buffer.
 
-
-
-<p id="gdcalert3" ><span style="color: red; font-weight: bold">>>>>  GDC alert: inline drawings not supported directly from Docs. You may want to copy the inline drawing to a standalone drawing and export by reference. See <a href=http://go/g3doc-drawings>go/g3doc-drawings</a> for details. The img URL below is a placeholder. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert4">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>> </span></p>
-
-
-![drawing](https://docs.google.com/a/google.com/drawings/d/12345/export/png)
+[drawing](https://docs.google.com/drawings/d/1jUnVO6pOqc1oSidAtYzrjj3PScGKb9QdTdgMQYlA9H4/edit?usp=sharing)
 
 
 ### The elegant hybrid
@@ -362,23 +306,7 @@ idx = 2 * idx + is_smaller
 ```
 
 
-Again this is 8 cycles on the loop carried data chain. This goes to the heart of the matter of why QuickSort is fast even though theoretically it has inferior behavior compared to heap and merge sort. By construction heap and merge sort divide the data very evenly in the implied tree structure, the heap structure is a binary tree of minimum depth as is the recursive subdivision that merge sort performs. This means that the number of comparisons they do is 
-
-<p id="gdcalert4" ><span style="color: red; font-weight: bold">>>>>  GDC alert: equation: use MathJax/LaTeX if your publishing platform supports it. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert5">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>> </span></p>
-
-which tightly hugs the information theoretical lower bound of 
-
-<p id="gdcalert5" ><span style="color: red; font-weight: bold">>>>>  GDC alert: equation: use MathJax/LaTeX if your publishing platform supports it. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert6">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>> </span></p>
-
-. Instead QuickSort bets on obtaining a reasonably balanced tree with high probability. The bits of information extracted from a comparison with the pivot depends on its rank in the array, only pivot’s that are close to the median will result in obtaining 1 bit of information per comparison. Solving the recurrence equation of QuickSort with a uniform pivot choice, gives 
-
-<p id="gdcalert6" ><span style="color: red; font-weight: bold">>>>>  GDC alert: equation: use MathJax/LaTeX if your publishing platform supports it. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert7">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>> </span></p>
-
-as the number of comparisons on average. Hence QuickSort does a factor 
-
-<p id="gdcalert7" ><span style="color: red; font-weight: bold">>>>>  GDC alert: equation: use MathJax/LaTeX if your publishing platform supports it. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert8">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>> </span></p>
-
-more comparisons or equivalently more iterations in the inner work loop. However the enormous speed difference in the basic work loop more than compensates for this information theoretical factor. Also, when partitioning big arrays spending a little amount of work improving the choice of pivot by a median of three brings this factor down to ~1.2, further improvements can get this factor rather close to 1. The main point here is that this factor is dominated by the differences in throughput of the work loop.
+Again this is 8 cycles on the loop carried data chain. This goes to the heart of the matter of why QuickSort is fast even though theoretically it has inferior behavior compared to heap and merge sort. By construction heap and merge sort divide the data very evenly in the implied tree structure, the heap structure is a binary tree of minimum depth as is the recursive subdivision that merge sort performs. This means that the number of comparisons they do is `n lg(n)` which tightly hugs the information theoretical lower bound of `lg(n!)`. Instead QuickSort bets on obtaining a reasonably balanced tree with high probability. The bits of information extracted from a comparison with the pivot depends on its rank in the array, only pivot’s that are close to the median will result in obtaining 1 bit of information per comparison. Solving the recurrence equation of QuickSort with a uniform pivot choice, gives `2n ln(n)` as the number of comparisons on average. Hence QuickSort does a factor `2 ln(2) = 1.4` more comparisons, or equivalently more iterations in the inner work loop. However the enormous speed difference in the basic work loop more than compensates for this information theoretical factor. Also, when partitioning big arrays spending a little amount of work improving the choice of pivot by a median of three brings this factor down to ~1.2, further improvements can get this factor rather close to 1. The main point here is that this factor is dominated by the differences in throughput of the work loop.
 
 We can significantly speed up merge sort by this one simple trick. Due to the large dependency chain merge sort loop runs at a very low IPC. This basically means we can add more instructions for free. In particular merge sort has a backwards equivalent. We can merge forward and backward in a single loop while keeping the latency of the loop body the same. It also eliminates an awkward exit condition as now you can unconditionally iterate n/2 times. This reduces the number of iterations roughly by 2x. Another trick is preloading values for the next iteration,
 
