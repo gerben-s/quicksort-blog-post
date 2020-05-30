@@ -133,42 +133,16 @@ void InsertionSort(T* arr, size_t n) {
 template <typename T, size_t N>
 struct Pipe {
   Pipe(const T* arr) {
-    static_assert(N > 0 && N <= 3, "");
-    switch (N) {
-      case 1:
-        pipe_[0] = arr[0];
-        break;
-      case 2: {
-        auto p0 = arr[0];
-        auto p1 = arr[1];
-        if (p1 < p0) std::swap(p0, p1);
-        pipe_[0] = p0;
-        pipe_[1] = p1;
-        break;
-      }
-      case 3: {
-        auto p0 = arr[0];
-        auto p1 = arr[1];
-        auto p2 = arr[2];
-        if (p1 < p0) std::swap(p0, p1);
-        if (p2 < p1) std::swap(p1, p2);
-        if (p1 < p0) std::swap(p0, p1);
-        pipe_[0] = p0;
-        pipe_[1] = p1;
-        pipe_[2] = p2;
-        break;
-      }
-    }
+    for (int i = 0; i < N; i++) pipe_[i] = arr[i];
+    exp_gerbens::BubbleSort(pipe_, N);
   }
   T Push(T val) {
-    bool smaller = val < pipe_[0];
-    auto res = smaller ? val : pipe_[0];
-    pipe_[0] = smaller ? pipe_[0] : val;
-    for (int i = 1; i < N; i++) {
-      smaller = val < pipe_[i];
-      pipe_[i - 1] = smaller ? pipe_[i - 1] : pipe_[i];
-      pipe_[i] = smaller ? pipe_[i] : val;
-//      asm("" : "+r"(pipe_[i]));
+    auto res = val;
+    for (int i = N - 1; i >= 0; i--) {
+      auto tmp = pipe_[i];
+      bool smaller = val < tmp;
+      pipe_[i] = smaller ? tmp : res;
+      res = smaller ? val : tmp;
     }
     return res;
   }
@@ -190,7 +164,8 @@ void PipedBubbleSort(T* arr, size_t n) {
     }
     for (size_t j = 0; j < N; j++) arr[i - N + j] = pipe.pipe_[j];
   }
-  if (i == 2) {
+  static_assert(N <= 3, "Must patch up remaining elements only supported for N == 3 at the moment");
+  if (N == 3 && i == 2) {
     if (arr[1] < arr[0]) std::swap(arr[0], arr[1]);
   }
 }
@@ -246,30 +221,38 @@ void BottomUpMerge(int* arr, size_t n, int* scratch) {
 
 template <typename T>
 void Merge(const T* left, size_t n, T* out) {
-  auto iMiddle = n / 2;
-  size_t  i = 0, j = iMiddle;
+  auto middle = n / 2;
+  size_t smaller_cnt = 0;
 
   // While there are elements in the left or right runs...
   for (size_t k = 0; k < n; k++) {
     // If left run head exists and is <= existing right run head.
-    if (i < iMiddle && (j >= n || left[i] <= left[j])) {
-        out[k] = left[i];
-        i = i + 1;
-    } else {
-        out[k] = left[j];
-        j = j + 1;
+    auto i = k - smaller_cnt;
+    auto j = middle + smaller_cnt;
+    if (i >= middle) {
+      for (; k < n; k++) out[k] = left[j++];
+      return;
     }
+    if (j >= n) {
+      for (; k < n; k++) out[k] = left[i++];
+      return;
+    }
+    auto x = left[i];
+    auto y = left[j];
+    bool is_smaller = y < x;
+    out[k] = is_smaller ? y : x;
+    smaller_cnt += is_smaller;
   }
 }
 
-template <typename T>
+
+template <bool kDoubleMerge, typename T>
 void MergeSort(T* arr, size_t n, T* scratch) {
   if (n <= exp_gerbens::kSmallSortThreshold) return exp_gerbens::BubbleSort2(arr, n);
-  MergeSort(arr, n / 2, scratch);
-  MergeSort(arr + n / 2, n - n / 2, scratch + n / 2);
+  MergeSort<kDoubleMerge>(arr, n / 2, scratch);
+  MergeSort<kDoubleMerge>(arr + n / 2, n - n / 2, scratch + n / 2);
   memcpy(scratch, arr, n * sizeof(T));
-  constexpr bool kFastMerge = true;
-  if (kFastMerge) {
+  if (kDoubleMerge) {
     MergeFast(scratch, n, arr);
   } else {
     Merge(scratch, n, arr);
@@ -330,7 +313,8 @@ void BM_MergeSort(benchmark::State& state) {
     msort(buf.data(), power2, scratch.data());
   }
 }
-BENCHMARK_TEMPLATE(BM_MergeSort, MergeSort);
+BENCHMARK_TEMPLATE(BM_MergeSort, MergeSort<false>);
+BENCHMARK_TEMPLATE(BM_MergeSort, MergeSort<true>);
 BENCHMARK_TEMPLATE(BM_MergeSort, BottomUpMerge);
 
 template<void (*small_sort)(int*, size_t)>
@@ -453,7 +437,7 @@ void BM_IndirectionMergeSort(benchmark::State& state) {
     state.PauseTiming();
     for (auto& x : buf) x = pointers.data() + dist(rnd);
     state.ResumeTiming();
-    MergeSort(buf.data(), buf.size(), buf2.data());
+    MergeSort<true>(buf.data(), buf.size(), buf2.data());
   }
 }
 
@@ -513,7 +497,7 @@ int main(int argc, char* argv[]) {
   std::sort(buf2.begin(), buf2.end());
   // for (auto x : buf2) std::cout << x << " "; std::cout << "\n";
   assert(buf == buf2);
-  MergeSort(buf3.data(), buf3.size(), buf2.data());
+  MergeSort<true>(buf3.data(), buf3.size(), buf2.data());
   assert(buf == buf3);
   HeapSort(buf4.data(), buf4.size());
   assert(buf == buf4);
