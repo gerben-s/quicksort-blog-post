@@ -113,6 +113,23 @@ void OddEvenSort(T* arr, size_t n) {
   }
 }
 
+template <typename T>
+void InsertionSort(T* arr, size_t n) {
+  for (size_t i = 1; i < n; i++) {
+    auto x = arr[i];
+    if (x < arr[0]) {
+      // Move the whole array
+      for (auto j = i; j > 0; j--) arr[j] = arr[j - 1];
+      arr[0] = x;
+    } else {
+      // Move part of the array.
+      auto j = i;
+      for (; x < arr[j - 1]; j--) arr[j] = arr[j - 1];
+      arr[j] = x;
+    }
+  }
+}
+
 template <typename T, size_t N>
 struct Pipe {
   Pipe(const T* arr) {
@@ -335,6 +352,7 @@ void BM_SmallSort(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_SmallSort, OddEvenSort)->Range(2, 32);
 BENCHMARK_TEMPLATE(BM_SmallSort, exp_gerbens::BubbleSort)->Range(2, 32)->RangeMultiplier(2);
 BENCHMARK_TEMPLATE(BM_SmallSort, exp_gerbens::BubbleSort2)->Range(2, 32)->RangeMultiplier(2);
+BENCHMARK_TEMPLATE(BM_SmallSort, InsertionSort)->Range(2, 32)->RangeMultiplier(2);
 
 void BM_Partition(benchmark::State& state) {
   std::vector<int> buf(FLAGS_number);
