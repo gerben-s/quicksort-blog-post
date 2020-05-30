@@ -484,6 +484,8 @@ BENCHMARK_TEMPLATE(BM_IndirectMerge, 2);
 BENCHMARK_TEMPLATE(BM_IndirectMerge, 3);
 
 int main(int argc, char* argv[]) {
+  benchmark::Initialize(&argc, argv);
+
   std::mt19937 rnd;
   std::uniform_int_distribution<int> dist(0, FLAGS_number * 4);
   std::vector<int> buf(FLAGS_number);
