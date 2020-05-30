@@ -224,9 +224,7 @@ void Merge(const T* left, size_t n, T* out) {
   auto middle = n / 2;
   size_t smaller_cnt = 0;
 
-  // While there are elements in the left or right runs...
-  for (size_t k = 0; k < n; k++) {
-    // If left run head exists and is <= existing right run head.
+  for (size_t k = 0;; k++) {
     auto i = k - smaller_cnt;
     auto j = middle + smaller_cnt;
     if (i >= middle) {
