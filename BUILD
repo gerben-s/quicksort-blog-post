@@ -4,6 +4,7 @@ cc_binary(
     srcs = [
         "bench_sort.cc",
         "hybrid_qsort.h",
+        "third_party/lomuto/lomuto.h",
     ],
     deps = [
         "@com_github_google_benchmark//:benchmark_main",

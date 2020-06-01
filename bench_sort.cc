@@ -23,6 +23,7 @@
 #include <benchmark/benchmark.h>
 
 #include "hybrid_qsort.h"
+#include "third_party/lomuto/lomuto.h"
 
 constexpr int FLAGS_number = 100000;
 
@@ -269,6 +270,8 @@ void std_heap_sort(T* x, size_t n) {
 }
 template <typename T>
 void std_stable_sort(T* x, size_t n) { std::stable_sort(x, x + n); }
+template <typename T>
+void andrei_sort(T* x, size_t n) { andrei::sort(x, x + n); }
 
 void lib_qsort(int* x, size_t n) {
   std::qsort(x, n, 4, [](const void* a, const void* b) { return *static_cast<const int*>(a) - *static_cast<const int*>(b); });
@@ -291,6 +294,7 @@ BENCHMARK_TEMPLATE(BM_Sort, std_sort);
 BENCHMARK_TEMPLATE(BM_Sort, std_stable_sort);
 BENCHMARK_TEMPLATE(BM_Sort, std_heap_sort);
 BENCHMARK_TEMPLATE(BM_Sort, lib_qsort);
+BENCHMARK_TEMPLATE(BM_Sort, andrei_sort);
 BENCHMARK_TEMPLATE(BM_Sort, exp_gerbens::QuickSort);
 BENCHMARK_TEMPLATE(BM_Sort, HeapSort);
 
@@ -421,6 +425,7 @@ void BM_IndirectionSort(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std_stable_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std_heap_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, andrei_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, exp_gerbens::QuickSort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, HeapSort);
 
@@ -440,6 +445,14 @@ void BM_IndirectionMergeSort(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_IndirectionMergeSort, 1);
+
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std_stable_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std_heap_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, andrei_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, exp_gerbens::QuickSort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, HeapSort);
+BENCHMARK_TEMPLATE(BM_IndirectionMergeSort, 0);
 
 template <size_t N>
 void BM_IndirectPartition(benchmark::State& state) {
