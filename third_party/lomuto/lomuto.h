@@ -12,7 +12,7 @@ namespace andrei {
 using std::swap;
 
 using TYPE = long;
-static const size_t SORT_THRESHOLD = 16;
+constexpr int SORT_THRESHOLD = 16;
 
 /**
 Partitions the range [first, last) around a pivot chosen as the minimum of
@@ -171,7 +171,7 @@ Sorts [first, last) using quicksort and insertion sort for short subarrays.
 */
 template <class It>
 void sort(It first, It last) {
-    while (last - first > size_t(SORT_THRESHOLD)) {
+    while (last - first > SORT_THRESHOLD) {
 	    auto cut = lomuto_partition_branchfree(first, last);
         assert(cut >= first);
         assert(cut < last);

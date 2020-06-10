@@ -43,22 +43,49 @@ size_t LomutoPartition(T* arr, size_t n, T* scratch, size_t scratch_size) {
 }
 
 template <typename T>
-size_t SiftDown(T* arr, size_t idx, size_t n) {
+size_t SearchLeaf(T* arr, size_t idx, size_t n) {
   auto left = 2 * idx;
-  auto right = 2 * idx + 1;
-  if (right <= n) {
+  while (left < n) {
+    auto right = left + 1;
+    auto l = arr[left];
+    auto r = arr[right];
+    bool is_smaller = l < r;
+    auto max = is_smaller ? r : l;
+    arr[idx] = max;
+    idx = is_smaller ? right : left;
+    left = 2 * idx;
+  }
+  if (left == n) {
+    arr[idx] = arr[left];
+    idx = left;
+  }
+  return idx;
+}
+
+template <typename T>
+void SiftDown(T* arr, size_t idx, size_t n, T elem) {
+  auto left = 2 * idx;
+  while (left < n) {
+    auto right = left + 1;
     auto l = arr[left];
     auto r = arr[right];
     bool is_smaller = l < r;
     auto max = is_smaller ? r : l;
     auto next_idx = is_smaller ? right : left;
-    arr[idx] = max;
-    return SiftDown(arr, next_idx, n);
-  } else if (left == n) {
-    arr[idx] = arr[left];
-    return left;
+    is_smaller = max < elem;
+    arr[idx] = is_smaller ? elem : max;
+    elem = is_smaller ? max : elem;
+    idx = next_idx;
+    left = 2 * next_idx;
   }
-  return idx;
+  if (left == n) {
+    auto l = arr[left];
+    bool is_smaller = l < elem;
+    arr[idx] = is_smaller ? elem : l;
+    elem = is_smaller ? l : elem;
+    idx = left;    
+  }
+  arr[idx] = elem;
 }
 
 template <typename T>
@@ -76,11 +103,7 @@ void Insert(T* arr, T cur, size_t root, size_t idx) {
 
 template <typename T>
 void Heapify(T* arr, size_t n) {
-  for (int i = n / 2; i >= 1; i--) {
-    auto tmp = arr[i];
-    auto j = SiftDown(arr, i, n);
-    Insert(arr, tmp, i, j);
-  }
+  for (int i = n / 2; i >= 1; i--) SiftDown(arr, i, n, arr[i]);
 }
 
 template <typename T>
@@ -97,36 +120,51 @@ void HeapSort(T* arr, size_t n) {
   arr -= 1;
   Heapify(arr, n);
   for (size_t i = n; i > 1; i--) {
-    auto tmp = arr[1];
-    auto j = SiftDown(arr, 1, i);
-    Insert(arr, arr[i], 1, j);
-    arr[i] = tmp;
+    auto tmp = arr[i];
+    arr[i] = arr[1];
+#if 0
+    SiftDown(arr, 1, i - 1, tmp);
+#elif 1
+    if (i >= 33) {
+      auto idx1 = SearchLeaf(arr, 1, 31);
+      if (arr[idx1 >> 1] < tmp) {
+        Insert(arr, tmp, 1, idx1);
+        continue;
+      }
+      auto tmp2 = arr[i - 1];
+      arr[i - 1] = arr[1];
+      auto idx2 = SearchLeaf(arr, 1, 15);
+      if (idx2 == idx1 >> 1) {
+        // Colliding path
+        SiftDown(arr, idx1, i - 2, tmp);
+        SiftDown(arr, idx2, i - 2, tmp2);
+      } else {
+        
+      }
+    } else {
+      SiftDown(arr, 1, i - 1, tmp);
+    }
+#else
+    auto leaf = SearchLeaf(arr, 1, i - 1);
+    Insert(arr, tmp, 1, leaf);
+#endif
   }
 }
 
-// OddEven has no inter iteration dependencies but a lot of stores.
-// #stores if N/2 * (N + N) = N^2
-template <typename T>
-void OddEvenSort(T* arr, size_t n) {
-  for (size_t i = 0; i < (n + 1) / 2; i++) {
-    for (size_t j = 0; j < n - 1; j += 2) exp_gerbens::BranchlessSwap(arr, j, j + 1);
-    for (size_t j = 1; j < n - 1; j += 2) exp_gerbens::BranchlessSwap(arr, j, j + 1);
-  }
-}
-
-template <typename T>
-void InsertionSort(T* arr, size_t n) {
-  for (size_t i = 1; i < n; i++) {
-    auto x = arr[i];
-    if (x < arr[0]) {
+template <typename RandomIt, typename Compare>
+void InsertionSort(RandomIt first, RandomIt last, Compare comp) {
+  auto n = last - first;
+  for (decltype(n) i = 1; i < n; i++) {
+    auto x = first[i];
+    if (comp(x, first[0])) {
       // Move the whole array
-      for (auto j = i; j > 0; j--) arr[j] = arr[j - 1];
-      arr[0] = x;
+      for (auto j = i; j > 0; j--) first[j] = first[j - 1];
+      first[0] = x;
     } else {
       // Move part of the array.
       auto j = i;
-      for (; x < arr[j - 1]; j--) arr[j] = arr[j - 1];
-      arr[j] = x;
+      for (; comp(x, first[j - 1]); j--) first[j] = first[j - 1];
+      first[j] = x;
     }
   }
 }
@@ -247,7 +285,7 @@ void Merge(const T* left, size_t n, T* out) {
 
 template <bool kDoubleMerge, typename T>
 void MergeSort(T* arr, size_t n, T* scratch) {
-  if (n <= exp_gerbens::kSmallSortThreshold) return exp_gerbens::BubbleSort2(arr, n);
+  if (n <= exp_gerbens::kSmallSortThreshold) return exp_gerbens::BubbleSort2(arr, arr + n, std::less<>{});
   MergeSort<kDoubleMerge>(arr, n / 2, scratch);
   MergeSort<kDoubleMerge>(arr + n / 2, n - n / 2, scratch + n / 2);
   memcpy(scratch, arr, n * sizeof(T));
@@ -261,23 +299,18 @@ void MergeSort(T* arr, size_t n, T* scratch) {
 
 // Benchmarks
 
-template <typename T>
-void std_sort(T* x, size_t n) { std::sort(x, x + n); }
-template <typename T>
-void std_heap_sort(T* x, size_t n) {
-  std::make_heap(x, x + n);
-  std::sort_heap(x, x + n);
-}
-template <typename T>
-void std_stable_sort(T* x, size_t n) { std::stable_sort(x, x + n); }
-template <typename T>
-void andrei_sort(T* x, size_t n) { andrei::sort(x, x + n); }
-
-void lib_qsort(int* x, size_t n) {
-  std::qsort(x, n, 4, [](const void* a, const void* b) { return *static_cast<const int*>(a) - *static_cast<const int*>(b); });
+template <typename RandomIt>
+void std_heap_sort(RandomIt first, RandomIt last) {
+  std::make_heap(first, last);
+  std::sort_heap(first, last);
 }
 
-template<void (*qsort)(int*, size_t)>
+template <typename RandomIt>
+void HeapSort(RandomIt first, RandomIt last) {
+  HeapSort(&*first, last - first);
+}
+
+template<void (*qsort)(int*, int*)>
 void BM_Sort(benchmark::State& state) {
   static std::vector<int> buf(FLAGS_number);
   std::mt19937 rnd;
@@ -286,15 +319,14 @@ void BM_Sort(benchmark::State& state) {
     state.PauseTiming();
     for (auto& x : buf) x = dist(rnd);
     state.ResumeTiming();
-    qsort(buf.data(), buf.size());
+    qsort(buf.data(), buf.data() + FLAGS_number);
   }
 }
 
-BENCHMARK_TEMPLATE(BM_Sort, std_sort);
-BENCHMARK_TEMPLATE(BM_Sort, std_stable_sort);
+BENCHMARK_TEMPLATE(BM_Sort, std::sort);
+BENCHMARK_TEMPLATE(BM_Sort, std::stable_sort);
 BENCHMARK_TEMPLATE(BM_Sort, std_heap_sort);
-BENCHMARK_TEMPLATE(BM_Sort, lib_qsort);
-BENCHMARK_TEMPLATE(BM_Sort, andrei_sort);
+BENCHMARK_TEMPLATE(BM_Sort, andrei::sort);
 BENCHMARK_TEMPLATE(BM_Sort, exp_gerbens::QuickSort);
 BENCHMARK_TEMPLATE(BM_Sort, HeapSort);
 
@@ -319,7 +351,7 @@ BENCHMARK_TEMPLATE(BM_MergeSort, MergeSort<false>);
 BENCHMARK_TEMPLATE(BM_MergeSort, MergeSort<true>);
 BENCHMARK_TEMPLATE(BM_MergeSort, BottomUpMerge);
 
-template<void (*small_sort)(int*, size_t)>
+template<void (*small_sort)(int*, int*, std::less<>)>
 void BM_SmallSort(benchmark::State& state) {
   int n = state.range(0);
   std::vector<int> buf(FLAGS_number);
@@ -331,11 +363,10 @@ void BM_SmallSort(benchmark::State& state) {
     for (auto& x : buf) x = dist(rnd);
     state.ResumeTiming();
     for (int i = 0; i + n <= FLAGS_number; i += n) {
-      small_sort(buf.data() + i, n);
+      small_sort(buf.data() + i, buf.data() + i + n, std::less<>{});
     }
   }
 }
-BENCHMARK_TEMPLATE(BM_SmallSort, OddEvenSort)->Range(2, 32);
 BENCHMARK_TEMPLATE(BM_SmallSort, exp_gerbens::BubbleSort)->Range(2, 32)->RangeMultiplier(2);
 BENCHMARK_TEMPLATE(BM_SmallSort, exp_gerbens::BubbleSort2)->Range(2, 32)->RangeMultiplier(2);
 BENCHMARK_TEMPLATE(BM_SmallSort, InsertionSort)->Range(2, 32)->RangeMultiplier(2);
@@ -348,26 +379,15 @@ void BM_Partition(benchmark::State& state) {
   for (auto& x : buf2) x = dist(rnd);
   constexpr size_t kScratchSize = 512;
   int scratch[kScratchSize];
+  auto pivot = buf2[FLAGS_number / 2];
   while (state.KeepRunningBatch(FLAGS_number)) {
     state.PauseTiming();
     buf = buf2;
     state.ResumeTiming();
-    auto pivot = exp_gerbens::Partition<kScratchSize>(buf.data(), FLAGS_number, scratch);
-    benchmark::DoNotOptimize(pivot);
+    auto p = exp_gerbens::HoareLomutoHybridPartition<kScratchSize>(pivot, buf.begin(), buf.end(), scratch, std::less<>{});
+    benchmark::DoNotOptimize(p);
   }
 }
-BENCHMARK(BM_Partition);
-void BM_PartitionInto(benchmark::State& state) {
-  std::vector<int> buf(FLAGS_number);
-  std::vector<int> buf2(FLAGS_number);
-  std::mt19937 rnd;
-  std::uniform_int_distribution<int> dist(100000000);
-  for (auto& x : buf) x = dist(rnd);
-  while (state.KeepRunningBatch(FLAGS_number)) {
-    exp_gerbens::PartitionInto(buf.data(), FLAGS_number, buf2.data());
-  }
-}
-BENCHMARK(BM_PartitionInto);
 
 template <size_t N>
 struct PointlessPointerIndirection {
@@ -408,7 +428,7 @@ inline bool operator>=(const Pointless<N>& a, const Pointless<N>& b) {
 }
 
 
-template <size_t N, void (*qsort)(Pointless<N>*, size_t)>
+template <size_t N, void (*qsort)(Pointless<N>*, Pointless<N>*)>
 void BM_IndirectionSort(benchmark::State& state) {
   std::vector<PointlessPointerIndirection<N>> pointers(FLAGS_number);
   std::vector<Pointless<N>> buf(FLAGS_number);
@@ -418,14 +438,14 @@ void BM_IndirectionSort(benchmark::State& state) {
     state.PauseTiming();
     for (auto& x : buf) x = pointers.data() + dist(rnd);
     state.ResumeTiming();
-    qsort(buf.data(), buf.size());
+    qsort(buf.data(), buf.data() + buf.size());
   }
 }
 
-BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std_sort);
-BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std_stable_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std::sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std::stable_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std_heap_sort);
-BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, andrei_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, andrei::sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, exp_gerbens::QuickSort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, HeapSort);
 
@@ -446,10 +466,10 @@ void BM_IndirectionMergeSort(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_IndirectionMergeSort, 1);
 
-BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std_sort);
-BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std_stable_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std::sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std::stable_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std_heap_sort);
-BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, andrei_sort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, andrei::sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, exp_gerbens::QuickSort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, HeapSort);
 BENCHMARK_TEMPLATE(BM_IndirectionMergeSort, 0);
@@ -464,11 +484,12 @@ void BM_IndirectPartition(benchmark::State& state) {
   for (auto& x : buf2) x = pointers.data() + dist(rnd);
   constexpr size_t kScratchSize = 512;
   Pointless<N> buffer[kScratchSize];
+  auto pivot = buf2[FLAGS_number / 2];
   while (state.KeepRunningBatch(FLAGS_number)) {
     state.PauseTiming();
     buf = buf2;
     state.ResumeTiming();
-    auto p = exp_gerbens::Partition<kScratchSize>(buf.data(), FLAGS_number, buffer);
+    auto p = exp_gerbens::HoareLomutoHybridPartition<kScratchSize>(pivot, buf.begin(), buf.end(), buffer, std::less<>{});
     benchmark::DoNotOptimize(p);
   }
 }
@@ -505,7 +526,7 @@ int main(int argc, char* argv[]) {
   auto buf3 = buf;
   auto buf4 = buf;
   // for (auto x : buf) std::cout << x << " "; std::cout << "\n";
-  exp_gerbens::QuickSort(buf.data(), buf.size());
+  exp_gerbens::QuickSort(buf.begin(), buf.end());
   // for (auto x : buf) std::cout << x << " "; std::cout << "\n";
   std::sort(buf2.begin(), buf2.end());
   // for (auto x : buf2) std::cout << x << " "; std::cout << "\n";
