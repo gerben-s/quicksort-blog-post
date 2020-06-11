@@ -314,7 +314,7 @@ template<void (*qsort)(int*, int*)>
 void BM_Sort(benchmark::State& state) {
   static std::vector<int> buf(FLAGS_number);
   std::mt19937 rnd;
-  std::uniform_int_distribution<int> dist(100000000);
+  std::uniform_int_distribution<int> dist(0, 100000000);
   while (state.KeepRunningBatch(FLAGS_number)) {
     state.PauseTiming();
     for (auto& x : buf) x = dist(rnd);
@@ -329,6 +329,26 @@ BENCHMARK_TEMPLATE(BM_Sort, std_heap_sort);
 BENCHMARK_TEMPLATE(BM_Sort, andrei::sort);
 BENCHMARK_TEMPLATE(BM_Sort, exp_gerbens::QuickSort);
 BENCHMARK_TEMPLATE(BM_Sort, HeapSort);
+
+template<void (*qsort)(int*, int*)>
+void BM_SortDuplicates(benchmark::State& state) {
+  static std::vector<int> buf(FLAGS_number);
+  std::mt19937 rnd;
+  std::uniform_int_distribution<int> dist(0, 5);
+  while (state.KeepRunningBatch(FLAGS_number)) {
+    state.PauseTiming();
+    for (auto& x : buf) x = dist(rnd);
+    state.ResumeTiming();
+    qsort(buf.data(), buf.data() + FLAGS_number);
+  }
+}
+
+BENCHMARK_TEMPLATE(BM_SortDuplicates, std::sort);
+BENCHMARK_TEMPLATE(BM_SortDuplicates, std::stable_sort);
+BENCHMARK_TEMPLATE(BM_SortDuplicates, std_heap_sort);
+BENCHMARK_TEMPLATE(BM_SortDuplicates, andrei::sort);
+BENCHMARK_TEMPLATE(BM_SortDuplicates, exp_gerbens::QuickSort);
+BENCHMARK_TEMPLATE(BM_SortDuplicates, HeapSort);
 
 template <void (*msort)(int*, size_t, int*)>
 void BM_MergeSort(benchmark::State& state) {

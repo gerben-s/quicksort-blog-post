@@ -24,21 +24,18 @@ namespace exp_gerbens {
 
 constexpr ptrdiff_t kSmallSortThreshold = 16;
 
-template <typename RandomIt, typename Compare>
-void BranchlessSwap(RandomIt a, RandomIt b, Compare comp = std::less<>{}) {
-  auto x = *a;
-  auto y = *b;
-  if (comp(y, x)) std::swap(x, y);
-  *a = x; *b = y;
-}
-
 // Moves median of first, middle, last 
 template <typename RandomIt, typename Compare>
-void MedianOfThree(RandomIt first, RandomIt last, Compare comp = std::less<>{}) {
-  auto mid = first + ((last - first) >> 1);
-  BranchlessSwap(first, mid, comp);
-  BranchlessSwap(first, last - 1, comp);
-  BranchlessSwap(last - 1, mid, comp);
+auto MedianOfThree(RandomIt first, RandomIt last, Compare comp = std::less<>{}) {
+  auto n = last - first;
+  auto f = *first;
+  auto m = first[n >> 1];
+  auto l = last[-1];
+  using std::swap;
+  if (comp(m, f)) swap(f, m);
+  if (comp(l, f)) swap(f, l);
+  if (comp(l, m)) swap(l, m);
+  return m;
 }
 
 // BubbleSort works better it has N(N-1)/2 stores, but x is updated in the inner
@@ -146,17 +143,18 @@ void QuickSortScratch(T* arr, size_t n, T* scratch) {
 template <typename T, typename RandomIt, typename ScratchIt, typename Compare>
 RandomIt DistributeForward(T pivot, RandomIt first, RandomIt last, ScratchIt scratch,
                     ptrdiff_t scratch_size, Compare comp) {
-  ptrdiff_t larger = scratch_size;
+  ptrdiff_t larger = 0;
+  auto scratch_end = scratch + scratch_size - 1;
   while (first < last) {
     auto x = *first;
     bool is_larger = !comp(x, pivot);
-    auto dest = is_larger ? &(*(scratch + scratch_size - 1)) : &(*first);
-    dest[larger - scratch_size] = x;
+    auto dest = is_larger ? &scratch_end[larger] : &first[larger];
+    *dest = x;
     first++;
     larger -= is_larger;
-    if (larger == 0) break;
+    if (larger == -scratch_size) break;
   }
-  return first - (scratch_size - larger);
+  return first + larger;
 }
 
 // Same as above only reversed. This fills the scratch buffer starting at the
@@ -164,17 +162,17 @@ RandomIt DistributeForward(T pivot, RandomIt first, RandomIt last, ScratchIt scr
 template <typename T, typename RandomIt, typename ScratchIt, typename Compare>
 RandomIt DistributeBackward(T pivot, RandomIt first, RandomIt last, ScratchIt scratch,
                      ptrdiff_t scratch_size, Compare comp) {
-  ptrdiff_t smaller = -scratch_size;
+  ptrdiff_t smaller = 0;
   while (first < last) {
-    auto x = last[-1];
+    --last;
+    auto x = *last;
     bool is_smaller = comp(x, pivot);
-    auto dest = is_smaller ? &(*scratch) : &(*(last - 1));
-    dest[smaller + scratch_size] = x;
-    last--;
+    auto dest = is_smaller ? &scratch[smaller] : &last[smaller];
+    *dest = x;
     smaller += is_smaller;
-    if (smaller == 0) break;
+    if (smaller == scratch_size) break;
   }
-  return last + (scratch_size + smaller);
+  return last + smaller;
 }
 
 // New partition algorithm. It's a branch "reduced" hybrid between Hoare and
@@ -241,25 +239,34 @@ RandomIt HoareLomutoHybridPartition(T pivot, RandomIt first, RandomIt last, T* s
 }
 
 template <ptrdiff_t kScratchSize, typename RandomIt, typename T, typename Compare>
-RandomIt ChoosePivotAndPartition(RandomIt first, RandomIt last, T* scratch, Compare comp) {
-  MedianOfThree(first, last, comp);
-  auto pivot = *(--last);
+std::pair<RandomIt, RandomIt> ChoosePivotAndPartition(RandomIt first, RandomIt last, T* scratch, Compare comp) {
+  auto pivot = MedianOfThree(first, last, comp);
   auto res = HoareLomutoHybridPartition<kScratchSize>(pivot, first, last, scratch, comp);
-  *last = *res;
-  *res = pivot;
-  return res;
+  auto n = last - first;
+  auto m = res - first;
+  if (m < (n >> 3)) {
+    // Fallback path, a surprisingly skewed partition has happened. Likely pivot has many identical elements
+    return {res, std::partition(res, last, [&](const T& p) { return !comp(pivot, p); })};
+  }
+  return {res, res};
 }
 
 template <ptrdiff_t kScratchSize, typename RandomIt, typename T, typename Compare>
 void QuickSortImpl(RandomIt first, RandomIt last, T* scratch, Compare comp) {
-  if (last - first > kSmallSortThreshold) {
+  while (last - first > kSmallSortThreshold) {
     auto p = ChoosePivotAndPartition<kScratchSize>(first, last, scratch, comp);
-    QuickSortImpl<kScratchSize>(first, p, scratch, comp);
-    QuickSortImpl<kScratchSize>(p + 1, last, scratch, comp);
-  } else {
-    SmallSort(first, last, comp);
-//    QuickSortScratch(first, last, scratch, comp);
+    auto nleft = p.first - first;
+    auto nright = last - p.second;
+    // Recurse only on the smallest partition guaranteeing O(log n) stack.
+    if (nleft <= nright) {
+      QuickSortImpl<kScratchSize>(first, p.first, scratch, comp);
+      first = p.second;
+    } else {
+      QuickSortImpl<kScratchSize>(p.second, last, scratch, comp);
+      last = p.first;
+    }
   }
+  SmallSort(first, last, comp);
 }
 
 template <ptrdiff_t kScratchSize = 512, typename RandomIt, typename Compare>
