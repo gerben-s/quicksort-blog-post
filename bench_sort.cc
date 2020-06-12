@@ -24,6 +24,7 @@
 
 #include "hybrid_qsort.h"
 #include "third_party/lomuto/lomuto.h"
+#include "third_party/pdqsort/pdqsort.h"
 
 constexpr int FLAGS_number = 100000;
 
@@ -328,6 +329,7 @@ BENCHMARK_TEMPLATE(BM_Sort, std::stable_sort);
 BENCHMARK_TEMPLATE(BM_Sort, std_heap_sort);
 BENCHMARK_TEMPLATE(BM_Sort, andrei::sort);
 BENCHMARK_TEMPLATE(BM_Sort, exp_gerbens::QuickSort);
+BENCHMARK_TEMPLATE(BM_Sort, pdqsort);
 BENCHMARK_TEMPLATE(BM_Sort, HeapSort);
 
 template<void (*qsort)(int*, int*)>
@@ -467,6 +469,7 @@ BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std::stable_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, std_heap_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, andrei::sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, exp_gerbens::QuickSort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, pdqsort_branchless);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 1, HeapSort);
 
 template <size_t N>
@@ -491,6 +494,7 @@ BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std::stable_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, std_heap_sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, andrei::sort);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, exp_gerbens::QuickSort);
+BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, pdqsort_branchless);
 BENCHMARK_TEMPLATE(BM_IndirectionSort, 0, HeapSort);
 BENCHMARK_TEMPLATE(BM_IndirectionMergeSort, 0);
 

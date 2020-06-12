@@ -5,6 +5,7 @@ cc_binary(
         "bench_sort.cc",
         "hybrid_qsort.h",
         "third_party/lomuto/lomuto.h",
+        "third_party/pdqsort/pdqsort.h",
     ],
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
