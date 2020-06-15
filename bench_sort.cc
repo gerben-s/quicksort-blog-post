@@ -152,15 +152,52 @@ void HeapSort(T* arr, size_t n) {
   }
 }
 
+namespace reddit {
+  
+template <typename RandomAccessIterator, typename Compare>
+RandomAccessIterator push_sorted(RandomAccessIterator first,
+                                 RandomAccessIterator last,
+                                 Compare compare)
+{
+    auto length = last - first;
+    auto temp = std::move(first[length]);
+    while (compare(temp, first[length - 1]))
+    {
+        first[length] = std::move(first[length - 1]);
+        --length;
+        if (length == 0)
+            break;
+    }
+    first[length] = std::move(temp);
+    return first + length;
+}
+
+template <typename RandomAccessIterator, typename Compare>
+void insertion_sort(RandomAccessIterator first,
+                    RandomAccessIterator last,
+                    Compare compare)
+{
+    if (last - first <= 1)
+        return;
+
+    for (auto current = first + 1; current != last; ++current)
+    {
+        push_sorted(first, current, compare);
+    }
+}
+
+}  // namespace reddit
+
 template <typename RandomIt, typename Compare>
 void InsertionSort(RandomIt first, RandomIt last, Compare comp) {
   auto n = last - first;
+  auto f = first[0];
   for (decltype(n) i = 1; i < n; i++) {
     auto x = first[i];
-    if (comp(x, first[0])) {
+    if (__builtin_expect(comp(x, f), 0)) {
       // Move the whole array
       for (auto j = i; j > 0; j--) first[j] = first[j - 1];
-      first[0] = x;
+      first[0] = f = x;
     } else {
       // Move part of the array.
       auto j = i;
@@ -169,6 +206,25 @@ void InsertionSort(RandomIt first, RandomIt last, Compare comp) {
     }
   }
 }
+
+template <typename RandomIt, typename Compare>
+void SelectionSort(RandomIt first, RandomIt last, Compare comp) {
+  auto n = last - first;
+  for (decltype(n) i = 0; i < n; i++) {
+    auto f = first[i];
+    auto min = f;
+    auto idx = i;
+    for (auto j = i + 1; j < n; j++) {
+      auto tmp = first[j];
+      bool is_smaller = comp(tmp, min);
+      min = is_smaller ? tmp : min;
+      idx = is_smaller ? j : i;
+    }
+    first[i] = min;
+    first[idx] = f;
+  }
+}
+
 
 template <typename T, size_t N>
 struct Pipe {
@@ -392,6 +448,7 @@ void BM_SmallSort(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_SmallSort, exp_gerbens::BubbleSort)->Range(2, 32)->RangeMultiplier(2);
 BENCHMARK_TEMPLATE(BM_SmallSort, exp_gerbens::BubbleSort2)->Range(2, 32)->RangeMultiplier(2);
 BENCHMARK_TEMPLATE(BM_SmallSort, InsertionSort)->Range(2, 32)->RangeMultiplier(2);
+BENCHMARK_TEMPLATE(BM_SmallSort, reddit::insertion_sort)->Range(2, 32)->RangeMultiplier(2);
 
 void BM_Partition(benchmark::State& state) {
   std::vector<int> buf(FLAGS_number);

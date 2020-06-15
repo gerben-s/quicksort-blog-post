@@ -38,6 +38,25 @@ auto MedianOfThree(RandomIt first, RandomIt last, Compare comp = std::less<>{}) 
   return m;
 }
 
+template <typename RandomIt, typename Compare>
+void BranchlessSwap(RandomIt a, RandomIt b, Compare comp) {
+  auto x = *a;
+  auto y = *b;
+  if (comp(y, x)) std::swap(a, b);
+  *a = x; 
+  *b = y;
+}
+
+// Moves median of first, middle, last 
+template <typename RandomIt, typename Compare>
+void MoveMedianOfThreeToEnd(RandomIt first, RandomIt last, Compare comp) {
+  auto mid = first + ((last - first) >> 1);
+  auto back = last - 1;
+  BranchlessSwap(first, mid, comp);
+  BranchlessSwap(first, back, comp);
+  BranchlessSwap(back, mid, comp);
+}
+
 // BubbleSort works better it has N(N-1)/2 stores, but x is updated in the inner
 // loop. This is cmp/cmov sequence making the inner loop 2 cycles.
 template <typename RandomIt, typename Compare>
@@ -86,52 +105,52 @@ void SmallSort(RandomIt first, RandomIt last, Compare comp) {
   BubbleSort2(first, last, comp);
 }
 
-#if 0
-
-template <typename T>
-size_t PartitionInto(T* arr, size_t n, T* out) {
-  auto pivot = arr[n - 1];
-  auto last = out + n - 1;
+template <typename It, typename ScratchIt, typename Compare>
+ScratchIt PartitionInto(It first, It last, ScratchIt out, Compare comp) {
+  auto n = last - first;
+  auto pivot = first[n - 1];
+  auto l = out + n - 1;
   for (ptrdiff_t i = -(n - 1); i < 0; i++) {
-    auto x = arr[i + n - 1];
-    bool is_larger = x >= pivot;
+    auto x = first[i + n - 1];
+    bool is_larger = !comp(x, pivot);
     auto dest = is_larger ? 0 : i;
-    last[dest] = x;
-    last -= is_larger;
+    l[dest] = x;
+    l -= is_larger;
   }
-  *last = pivot;
-  return last - out;
+  *l = pivot;
+  return l;
 }
 
-template <typename T>
-void QuickSortScratch(T* arr, size_t n, T* scratch);
+template <typename RandomIt, typename ScratchIt, typename Compare>
+void QuickSortScratch(RandomIt first, RandomIt last, ScratchIt scratch, Compare comp);
 
-template <typename RandomIt, typename RandomOut, typename Compare>
-void QuickSortInto(RandomIt first, RandomIt last, RandomOut out, Compare comp) {
+template <typename RandomIt, typename OutIt, typename Compare>
+void QuickSortInto(RandomIt first, RandomIt last, OutIt out, Compare comp) {
+  auto n = last - first;
   if (n > kSmallSortThreshold) {
-    MedianOfThree(first, last, comp);
-    auto p = PartitionInto(arr, n, out);
-    QuickSortScratch(out, p, arr);
-    QuickSortScratch(out + p + 1, n - p - 1, arr);
+    MoveMedianOfThreeToEnd(first, last, comp);
+    auto p = PartitionInto(first, last, out, comp);
+    QuickSortScratch(out, p, first, comp);
+    QuickSortScratch(p + 1, out + n, first, comp);
   } else {
-    SmallSort(arr, n);
-    for (size_t i = 0; i < n; i++) out[i] = arr[i];
+    SmallSort(first, last, comp);
+    std::move(first, last, out);
   }
 }
 
-template <typename RandomIt, typename T, typename Compare>
-void QuickSortScratch(T* arr, size_t n, T* scratch) {
+template <typename RandomIt, typename ScratchIt, typename Compare>
+void QuickSortScratch(RandomIt first, RandomIt last, ScratchIt scratch, Compare comp) {
+  auto n = last - first;
   if (n > kSmallSortThreshold) {
-    MedianOfThree(arr, n);
-    auto p = PartitionInto(arr, n, scratch);
-    QuickSortInto(scratch, p, arr);
-    arr[p] = scratch[p];
-    QuickSortInto(scratch + p + 1, n - p - 1, arr + p + 1);
+    MoveMedianOfThreeToEnd(first, last, comp);
+    auto p = PartitionInto(first, last, scratch, comp);
+    QuickSortInto(scratch, p, first, comp);
+    first[p - scratch] = *p;
+    QuickSortInto(p + 1, scratch + n, first + (p - scratch) + 1, comp);
   } else {
-    SmallSort(arr, n);
+    SmallSort(first, last, comp);
   }
 }
-#endif
 
 // Lomuto inspired partitioning, except it's not in-place and therefore is
 // much like bucket sort. It distributes as many elements in the interval
@@ -253,7 +272,7 @@ std::pair<RandomIt, RandomIt> ChoosePivotAndPartition(RandomIt first, RandomIt l
 
 template <ptrdiff_t kScratchSize, typename RandomIt, typename T, typename Compare>
 void QuickSortImpl(RandomIt first, RandomIt last, T* scratch, Compare comp) {
-  while (last - first > kSmallSortThreshold) {
+  while (last - first > kScratchSize) {
     auto p = ChoosePivotAndPartition<kScratchSize>(first, last, scratch, comp);
     auto nleft = p.first - first;
     auto nright = last - p.second;
@@ -266,7 +285,8 @@ void QuickSortImpl(RandomIt first, RandomIt last, T* scratch, Compare comp) {
       last = p.first;
     }
   }
-  SmallSort(first, last, comp);
+//  SmallSort(first, last, comp);
+  QuickSortScratch(first, last, scratch, comp);
 }
 
 template <ptrdiff_t kScratchSize = 512, typename RandomIt, typename Compare>
