@@ -110,6 +110,7 @@ ScratchIt PartitionInto(It first, It last, ScratchIt out, Compare comp) {
   auto n = last - first;
   auto pivot = first[n - 1];
   auto l = out + n - 1;
+#pragma clang loop unroll_count(2)
   for (ptrdiff_t i = -(n - 1); i < 0; i++) {
     auto x = first[i + n - 1];
     bool is_larger = !comp(x, pivot);
