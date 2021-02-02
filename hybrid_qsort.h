@@ -85,7 +85,7 @@ void BubbleSort2(RandomIt first, RandomIt last, Compare comp = std::less<>{}) {
   for (auto i = n; i > 1; i -= 2) {
     auto x = first[0];
     auto y = first[1];
-    if (y < x) std::swap(x, y);
+    if (comp(y, x)) std::swap(x, y);
     for (decltype(n) j = 2; j < i; j++) {
       auto z = first[j];
       bool is_smaller = comp(z, y);
